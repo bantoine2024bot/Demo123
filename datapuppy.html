@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Data Puppy — Learn Data Science through Play 🐶📊</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg1: #fff7fb; --accent:#ff66b2; --muted:#6b6b6b; --card:#fff;
+    }
+    body{font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: linear-gradient(135deg,#fff7fb,#eef8ff); color:#333; margin:0; padding:18px;}
+    header{max-width:960px;margin:0 auto 12px;}
+    h1{color:var(--accent);margin:0;font-size:26px}
+    p.lead{margin:6px 0 18px;color:var(--muted)}
+
+    /* layout */
+    .container{max-width:960px;margin:0 auto;display:grid;grid-template-columns:320px 1fr;gap:18px}
+    nav.card, .stage.card{background:var(--card);padding:12px;border-radius:12px;box-shadow:0 6px 18px rgba(255,102,178,0.08)}
+    nav.card{height:calc(100vh - 120px);overflow:auto}
+    .stage.card{height:calc(100vh - 120px);overflow:auto}
+
+    nav h3{margin:8px 0}
+    .lesson{padding:8px;border-radius:8px;margin-bottom:8px;cursor:pointer}
+    .lesson.active{background:linear-gradient(90deg,#fff0f8,#ffeef9);box-shadow:inset 0 0 0 1px rgba(255,102,178,0.06)}
+    .muted{color:var(--muted);font-size:13px}
+
+    /* stage content */
+    .stage .title{font-weight:700;color:var(--accent)}
+    .panel{background:#fff;padding:12px;border-radius:10px;margin:10px 0;box-shadow:0 6px 12px rgba(0,0,0,0.03)}
+
+    /* mini game area */
+    #playArea{height:260px;border-radius:8px;background:linear-gradient(180deg,#fff,#fff6fb);display:flex;align-items:center;justify-content:center;border:2px dashed #ffd5ea;position:relative;overflow:hidden}
+    .dot{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;color:white}
+    .heart{background:#ff66b2}
+    .blue{background:#6bb8ff}
+    .yellow{background:#ffd166}
+
+    /* controls */
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    button.primary{background:var(--accent);color:white;border:none;padding:8px 12px;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid #ffd6ec;color:var(--accent);padding:8px 12px;border-radius:8px;cursor:pointer}
+
+    /* progress */
+    .progress{height:10px;background:#ffeef9;border-radius:6px;overflow:hidden}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,#ff99cc,#ff66b2);width:0%}
+
+    footer{max-width:960px;margin:18px auto;color:var(--muted);font-size:13px;text-align:center}
+
+    @media (max-width:840px){.container{grid-template-columns:1fr;}.stage.card{height:auto}.nav{position:static}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Data Puppy — Learn Data Science through Play 🐶📊</h1>
+    <p class="lead">A playful, step-by-step interactive game that teaches the fundamentals of data science: collection, cleaning, visualization, modeling, and evaluation — no prior knowledge required.</p>
+  </header>
+
+  <div class="container">
+    <nav class="card">
+      <h3>Lesson Map</h3>
+      <div id="lessons">
+        <div class="lesson active" data-lesson="1"><strong>1.</strong> Data Collection <div class="muted">Gather observations</div></div>
+        <div class="lesson" data-lesson="2"><strong>2.</strong> Data Cleaning <div class="muted">Fix errors & missing values</div></div>
+        <div class="lesson" data-lesson="3"><strong>3.</strong> Visualization <div class="muted">See patterns</div></div>
+        <div class="lesson" data-lesson="4"><strong>4.</strong> Modeling <div class="muted">Simple predictions</div></div>
+        <div class="lesson" data-lesson="5"><strong>5.</strong> Evaluation & Ethics <div class="muted">Measure & be fair</div></div>
+      </div>
+
+      <div style="margin-top:14px">
+        <div class="muted">Progress</div>
+        <div class="progress" aria-hidden><i id="progBar"></i></div>
+        <div id="status" class="muted" style="margin-top:8px">Lesson 1 — get 8 good data points</div>
+      </div>
+
+      <div style="margin-top:18px">
+        <div class="muted">Badges</div>
+        <div id="badges" style="display:flex;gap:6px;margin-top:8px">
+          <!-- badges appear here -->
+        </div>
+      </div>
+    </nav>
+
+    <main class="stage card">
+      <div class="title" id="lessonTitle">Lesson 1 — Data Collection</div>
+
+      <div class="panel" id="panelIntro">
+        <strong>Goal:</strong> Collect examples (data points) by clicking the hearts and stars. Try to collect a mix of colors. Each point represents one observation (a row in a dataset).
+      </div>
+
+      <div class="panel">
+        <div id="playArea">
+          <!-- interactive dots spawn here -->
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+          <div class="muted">Collected: <span id="collected">0</span></div>
+          <div class="controls">
+            <button id="startBtn" class="primary">Start</button>
+            <button id="viewData" class="ghost">View Table</button>
+            <button id="nextBtn" class="ghost">Next Lesson</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="panelData" style="display:none">
+        <strong>Data Table</strong>
+        <div style="overflow:auto;margin-top:8px;max-height:180px">
+          <table id="dataTable" style="width:100%;border-collapse:collapse;font-size:14px">
+            <thead><tr><th style="text-align:left">id</th><th>color</th><th>size</th><th>notes</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="muted" style="margin-top:10px">Tip: Each row is an observation. Columns are features (attributes).</div>
+      </div>
+
+      <div class="panel" id="panelViz" style="display:none">
+        <strong>Visualization</strong>
+        <p class="muted">Drag the sliders to change which columns are shown — watch how the chart updates.</p>
+        <div style="display:flex;gap:12px;align-items:center">
+          <div style="flex:1">
+            <canvas id="chart" width="700" height="220" style="max-width:100%"></canvas>
+          </div>
+        </div>
+        <div style="margin-top:8px" class="controls">
+          <button id="histBtn" class="ghost">Histogram</button>
+          <button id="scatterBtn" class="ghost">Scatter</button>
+          <button id="barBtn" class="ghost">Bar</button>
+        </div>
+      </div>
+
+      <div class="panel" id="panelModel" style="display:none">
+        <strong>Modeling — Predict a label</strong>
+        <p class="muted">We will try a tiny model that guesses whether a point is 'big' or 'small' from its color & size. Move the decision line to practise.</p>
+        <div style="display:flex;gap:12px;align-items:flex-end">
+          <canvas id="modelCanvas" width="700" height="220" style="max-width:100%"></canvas>
+        </div>
+        <div style="margin-top:8px">
+          <button id="trainBtn" class="primary">Auto Train</button>
+          <button id="evalBtn" class="ghost">Evaluate</button>
+          <div class="muted" style="margin-top:8px">Accuracy: <span id="accuracy">—</span></div>
+        </div>
+      </div>
+
+      <div class="panel" id="panelEval" style="display:none">
+        <strong>Evaluation & Ethics</strong>
+        <p class="muted">Check where the model makes mistakes. Think: Is the data fair and balanced?</p>
+        <div id="errors" style="margin-top:8px"></div>
+        <div style="margin-top:12px">
+          <button id="restartAll" class="primary">Restart Course</button>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <footer>Made for beginners — click through, experiment, and have fun! 💖</footer>
+
+  <script>
+    // ---------- state ----------
+    const lessons = document.querySelectorAll('.lesson');
+    const progBar = document.getElementById('progBar');
+    const status = document.getElementById('status');
+    const badges = document.getElementById('badges');
+
+    let currentLesson = 1;
+    let data = []; // array of {id,color,size,notes,label}
+    let collected = 0;
+
+    // Play area setup
+    const playArea = document.getElementById('playArea');
+    const collectedEl = document.getElementById('collected');
+    const startBtn = document.getElementById('startBtn');
+    const viewData = document.getElementById('viewData');
+    const nextBtn = document.getElementById('nextBtn');
+
+    // Panels
+    const panelData = document.getElementById('panelData');
+    const panelViz = document.getElementById('panelViz');
+    const panelModel = document.getElementById('panelModel');
+    const panelEval = document.getElementById('panelEval');
+
+    // canvases
+    const chart = document.getElementById('chart');
+    const ctx = chart.getContext('2d');
+    const modelCanvas = document.getElementById('modelCanvas');
+    const mctx = modelCanvas.getContext('2d');
+
+    // model UI
+    const trainBtn = document.getElementById('trainBtn');
+    const evalBtn = document.getElementById('evalBtn');
+    const accuracyEl = document.getElementById('accuracy');
+    const errorsEl = document.getElementById('errors');
+    const restartAll = document.getElementById('restartAll');
+
+    // helpers
+    function setLesson(n){
+      currentLesson = n;
+      lessons.forEach(l=>l.classList.toggle('active', parseInt(l.dataset.lesson)===n));
+      document.getElementById('lessonTitle').innerText = {
+        1: 'Lesson 1 — Data Collection',
+        2: 'Lesson 2 — Data Cleaning',
+        3: 'Lesson 3 — Visualization',
+        4: 'Lesson 4 — Modeling',
+        5: 'Lesson 5 — Evaluation & Ethics'
+      }[n];
+
+      // show/hide panels
+      panelData.style.display = n>=2 ? '' : 'none';
+      panelViz.style.display = n>=3 ? '' : 'none';
+      panelModel.style.display = n>=4 ? '' : 'none';
+      panelEval.style.display = n>=5 ? '' : 'none';
+
+      status.innerText = `Lesson ${n} — ${eduHint(n)}`;
+      updateProgress();
+    }
+
+    function eduHint(n){
+      return {
+        1: 'get 8 good data points',
+        2: 'fix missing values & typos',
+        3: 'explore charts',
+        4: 'train a tiny model',
+        5: 'inspect errors & fairness'
+      }[n];
+    }
+
+    lessons.forEach(l => l.addEventListener('click', ()=>setLesson(parseInt(l.dataset.lesson))));
+
+    function updateProgress(){
+      const pct = Math.min(100, Math.round((currentLesson-1)/4*100));
+      progBar.style.width = pct + '%';
+    }
+
+    // ---------- Lesson 1: collection ----------
+    let spawnTimer = null;
+    function startCollection(){
+      data = [];
+      collected = 0;
+      collectedEl.innerText = '0';
+      playArea.innerHTML = '';
+      // spawn moving emojis to click
+      spawnTimer = setInterval(()=>{
+        spawnDot();
+      }, 700);
+      startBtn.disabled = true;
+      nextBtn.disabled = false;
+    }
+
+    function spawnDot(){
+      const el = document.createElement('div');
+      el.className = 'dot';
+      const types = ['heart','blue','yellow'];
+      const t = types[Math.floor(Math.random()*types.length)];
+      el.classList.add(t==='heart'?'heart':t==='blue'?'blue':'yellow');
+      el.style.position = 'absolute';
+      const x = Math.random()* (playArea.clientWidth - 40) + 20;
+      const y = Math.random()* (playArea.clientHeight - 60) + 20;
+      el.style.left = x+'px';
+      el.style.top = y+'px';
+      el.dataset.color = t;
+      el.dataset.size = Math.random() > 0.6 ? 'big' : 'small';
+      el.title = `color=${el.dataset.color} size=${el.dataset.size}`;
+      playArea.appendChild(el);
+
+      // remove after 6s
+      setTimeout(()=>{ if (el && el.parentNode) el.remove(); }, 6000);
+
+      el.addEventListener('click', ()=>{
+        collect(el);
+      });
+    }
+
+    function collect(el){
+      const id = data.length + 1;
+      const color = el.dataset.color;
+      const size = el.dataset.size;
+      const notes = prompt('Add a short note for this observation (optional):','') || '';
+      const label = size === 'big' ? 'big' : 'small';
+      data.push({id,color,size,notes,label});
+      collected++;
+      collectedEl.innerText = collected;
+      el.remove();
+      updateTable();
+      if (collected >= 8){
+        // award badge
+        award('Collector');
+        clearInterval(spawnTimer);
+        startBtn.disabled = false;
+        status.innerText = 'Nice! Proceed to Lesson 2 to clean data.';
+      }
+    }
+
+    // ---------- Lesson 2: cleaning ----------
+    function updateTable(){
+      const tbody = document.querySelector('#dataTable tbody');
+      tbody.innerHTML = '';
+      data.forEach(r=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${r.id}</td><td>${r.color}</td><td>${r.size}</td><td>${escapeHtml(r.notes)}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    viewData.addEventListener('click', ()=>{
+      panelData.style.display = panelData.style.display === 'none' ? '' : 'none';
+    });
+
+    // small helper to escape text
+    function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // Cleaning actions: introduce intentional missing values and let user fix them
+    function introduceErrors(){
+      if (data.length===0) return;
+      // randomly blank out some notes or flip a size to 'unknown'
+      for(let i=0;i<Math.min(2,data.length);i++){
+        const r = data[Math.floor(Math.random()*data.length)];
+        if (Math.random()>0.5) r.notes = '';
+        else r.size = 'unknown';
+      }
+      updateTable();
+      award('Cleaner');
+    }
+
+    // ---------- Lesson 3: visualization ----------
+    document.getElementById('histBtn').addEventListener('click', ()=>drawChart('hist'));
+    document.getElementById('scatterBtn').addEventListener('click', ()=>drawChart('scatter'));
+    document.getElementById('barBtn').addEventListener('click', ()=>drawChart('bar'));
+
+    function drawChart(type){
+      // simple rendering without libraries
+      ctx.clearRect(0,0,chart.width,chart.height);
+      if (data.length===0) {
+        ctx.fillStyle='#666'; ctx.fillText('Collect some data first!',20,20); return;
+      }
+      if (type==='hist'){
+        // histogram of sizes
+        const counts = {big:0,small:0,unknown:0};
+        data.forEach(d=> counts[d.size] = (counts[d.size]||0)+1);
+        const keys = Object.keys(counts);
+        const w = chart.width/keys.length;
+        keys.forEach((k,i)=>{
+          const h = (counts[k]/data.length) * (chart.height-40);
+          ctx.fillStyle = k==='big' ? '#ffd166' : k==='small' ? '#6bb8ff' : '#ffb3d9';
+          ctx.fillRect(i*w + 40, chart.height-30-h, w-60, h);
+          ctx.fillStyle='#333'; ctx.fillText(`${k} (${counts[k]||0})`, i*w+42, chart.height-8);
+        });
+      } else if (type==='scatter'){
+        // map color -> x position, size -> y
+        const mapX = {heart:60, blue: chart.width/2, yellow: chart.width-80};
+        data.forEach(d=>{
+          const x = mapX[d.color] || chart.width/2;
+          const y = d.size==='big' ? chart.height/3 : d.size==='small' ? chart.height*2/3 : chart.height/2;
+          ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI*2);
+          ctx.fillStyle = d.color==='heart' ? '#ff66b2' : d.color==='blue' ? '#6bb8ff' : '#ffd166';
+          ctx.fill();
+        });
+      } else if (type==='bar'){
+        // count colors
+        const counts = {heart:0,blue:0,yellow:0}; data.forEach(d=> counts[d.color] = (counts[d.color]||0)+1);
+        const keys = Object.keys(counts); const w = chart.width/keys.length;
+        keys.forEach((k,i)=>{
+          const h = (counts[k]/data.length) * (chart.height-40);
+          ctx.fillStyle = k==='heart' ? '#ff66b2' : k==='blue' ? '#6bb8ff' : '#ffd166';
+          ctx.fillRect(i*w + 40, chart.height-30-h, w-60, h);
+          ctx.fillStyle='#333'; ctx.fillText(`${k} (${counts[k]})`, i*w+42, chart.height-8);
+        });
+      }
+    }
+
+    // ---------- Lesson 4: modeling (very tiny) ----------
+    // We'll implement a trivial rule-based "model" plus a button that computes accuracy.
+    function trainModel(){
+      // simple rule: if size === 'big' predict big, else small
+      // pretend training and compute accuracy on our dataset
+      if (data.length===0){ alert('Collect data first!'); return; }
+      let correct = 0; let total=0;
+      data.forEach(d=>{ if (d.size && d.size!=='unknown'){ total++; if ((d.size==='big' && d.label==='big')||(d.size!=='big' && d.label==='small')) correct++; } });
+      const acc = total===0?0:Math.round((correct/total)*100);
+      accuracyEl.innerText = acc + '%';
+      award('Modeler');
+    }
+
+    function evaluateModel(){
+      errorsEl.innerHTML = '';
+      data.forEach(d=>{
+        const pred = d.size==='big' ? 'big' : 'small';
+        if (pred !== d.label){
+          const div = document.createElement('div');
+          div.innerHTML = `id ${d.id}: actual=${d.label} pred=${pred} — <span class="muted">notes: ${escapeHtml(d.notes||'')}</span>`;
+          errorsEl.appendChild(div);
+        }
+      });
+      award('Auditor');
+    }
+
+    // ---------- badges ----------
+    function award(name){
+      const b = document.createElement('div');
+      b.style.padding='6px 8px'; b.style.background='#fff'; b.style.border='1px solid #ffd6ec'; b.style.borderRadius='8px'; b.style.color='#cc0077'; b.innerText = name;
+      badges.appendChild(b);
+    }
+
+    // ---------- helpers & wiring ----------
+    startBtn.addEventListener('click', ()=>{
+      if (currentLesson!==1) setLesson(1);
+      startCollection();
+    });
+
+    nextBtn.addEventListener('click', ()=>{ if (data.length<1) { alert('Collect at least one point first'); return;} setLesson(Math.min(5, currentLesson+1)); if (currentLesson===2) introduceErrors(); });
+
+    // training & eval
+    trainBtn.addEventListener('click', ()=>{ trainModel(); });
+    evalBtn.addEventListener('click', ()=>{ evaluateModel(); setLesson(5); });
+    restartAll.addEventListener('click', ()=> location.reload());
+
+    // init UI
+    setLesson(1);
+    updateProgress();
+
+    // minimal canvas text rendering setup (so chart text looks ok)
+    ctx.font = '12px sans-serif';
+    mctx.font = '12px sans-serif';
+
+    // Model canvas: show points and a movable decision boundary
+    function renderModelCanvas(){
+      mctx.clearRect(0,0,modelCanvas.width,modelCanvas.height);
+      if (data.length===0){ mctx.fillStyle='#666'; mctx.fillText('Collect data to see model',20,20); return; }
+      // mapping: color -> x, size big->y low, small->y high
+      const mapX = {heart:80, blue: modelCanvas.width/2, yellow: modelCanvas.width-120};
+      data.forEach(d=>{
+        const x = mapX[d.color] || modelCanvas.width/2;
+        const y = d.size==='big' ? 80 : d.size==='small' ? 160 : 120;
+        mctx.beginPath(); mctx.arc(x,y,10,0,Math.PI*2);
+        mctx.fillStyle = d.color==='heart' ? '#ff66b2' : d.color==='blue' ? '#6bb8ff' : '#ffd166';
+        mctx.fill();
+        mctx.fillStyle='#222'; mctx.fillText(`id${d.id}`, x-12, y-14);
+      });
+      // draw a simple threshold line for visual effect
+      mctx.strokeStyle = '#cc6699'; mctx.beginPath(); mctx.moveTo(0,120); mctx.lineTo(modelCanvas.width,120); mctx.stroke();
+    }
+
+    // re-render model canvas when the panel is shown
+    document.getElementById('panelModel').addEventListener('mouseenter', renderModelCanvas);
+
+    // small usability: show model canvas when lesson 4 becomes active
+    const obsInterval = setInterval(()=>{ renderModelCanvas(); drawChart('scatter'); }, 800);
+
+  </script>
+</body>
+</html>
