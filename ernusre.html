@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🏥 Nurse ER Triage</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f8ff;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 { color: #0077b6; }
+    #case {
+      margin: 20px auto;
+      width: 500px;
+      min-height: 100px;
+      padding: 20px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      font-size: 18px;
+    }
+    .buttons button {
+      margin: 10px;
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: #fff;
+    }
+    #critical { background: #d62828; }
+    #urgent { background: #f77f00; }
+    #nonurgent { background: #2a9d8f; }
+    #score {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    #gameover {
+      display: none;
+      margin-top: 20px;
+      font-size: 20px;
+      color: #d62828;
+    }
+  </style>
+</head>
+<body>
+  <h1>🏥 Nurse ER Triage</h1>
+  <p>Read the case and decide if it’s <b>Critical 🚨</b>, <b>Urgent ⚠️</b>, or <b>Non-Urgent 🙂</b>.</p>
+
+  <div id="case">Click a button to start!</div>
+
+  <div class="buttons">
+    <button id="critical">🚨 Critical</button>
+    <button id="urgent">⚠️ Urgent</button>
+    <button id="nonurgent">🙂 Non-Urgent</button>
+  </div>
+
+  <div id="score">Score: 0 | Lives: 3</div>
+  <div id="gameover"></div>
+
+  <script>
+    const cases = [
+      {symptoms: "Chest pain, shortness of breath, sweating", answer: "critical"},
+      {symptoms: "High fever, cough, dehydration", answer: "urgent"},
+      {symptoms: "Small cut on finger, bleeding controlled", answer: "nonurgent"},
+      {symptoms: "Severe head trauma, unconscious", answer: "critical"},
+      {symptoms: "Mild headache, normal vital signs", answer: "nonurgent"},
+      {symptoms: "Abdominal pain, vomiting, high temp", answer: "urgent"},
+      {symptoms: "Stroke signs: facial droop, slurred speech", answer: "critical"},
+      {symptoms: "Sore throat, mild fever", answer: "nonurgent"}
+    ];
+
+    let score = 0;
+    let lives = 3;
+    let currentCase = 0;
+
+    const caseEl = document.getElementById("case");
+    const scoreEl = document.getElementById("score");
+    const gameOverEl = document.getElementById("gameover");
+
+    function showCase() {
+      if (lives <= 0 || currentCase >= cases.length) {
+        endGame();
+        return;
+      }
+      caseEl.innerText = cases[currentCase].symptoms;
+    }
+
+    function checkAnswer(choice) {
+      if (lives <= 0) return;
+      const correct = cases[currentCase].answer;
+      if (choice === correct) {
+        score++;
+      } else {
+        lives--;
+      }
+      currentCase++;
+      scoreEl.innerText = `Score: ${score} | Lives: ${lives}`;
+      showCase();
+    }
+
+    function endGame() {
+      caseEl.innerText = "";
+      gameOverEl.style.display = "block";
+      gameOverEl.innerText = `Game Over! Final Score: ${score} / ${cases.length}`;
+    }
+
+    document.getElementById("critical").addEventListener("click", () => checkAnswer("critical"));
+    document.getElementById("urgent").addEventListener("click", () => checkAnswer("urgent"));
+    document.getElementById("nonurgent").addEventListener("click", () => checkAnswer("nonurgent"));
+
+    // start
+    showCase();
+  </script>
+</body>
+</html>
