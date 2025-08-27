@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🐭 Maze Escape with Enemies</title>
+  <style>
+    body {
+      background: #fff0f6;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    #game {
+      display: grid;
+      gap: 1px;
+      margin: 20px auto;
+      width: max-content;
+      background: #999;
+      padding: 5px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .cell {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      border-radius: 4px;
+      font-size: 18px;
+    }
+    .wall { background: #333; }
+    #status { font-size: 20px; margin-top: 10px; color: #6a1b9a; }
+    #timer { font-size: 22px; margin-top: 5px; color: #d32f2f; }
+    #hearts { font-size: 22px; margin-top: 10px; color: #c62828; }
+  </style>
+</head>
+<body>
+  <h1>🐭 Maze Escape 👻</h1>
+  <p>Use Arrow Keys or WASD to reach the 🧀.<br>
+     Avoid ⚠️ traps and 👻 ghosts!<br>
+     🍎 restores ❤️, ⚡ gives speed boost!<br>
+     Press <b>Enter</b> to restart.</p>
+
+  <div id="game"></div>
+  <div id="hearts">❤️❤️❤️</div>
+  <div id="timer">⏱️ Time: 0s</div>
+  <div id="status"></div>
+
+  <script>
+    const game = document.getElementById("game");
+    const statusEl = document.getElementById("status");
+    const timerEl = document.getElementById("timer");
+    const heartsEl = document.getElementById("hearts");
+
+    let size, maze, player, goal, traps, powerups, enemies;
+    let lives = 3;
+    let startTime, timerInterval, gameOver = false;
+    let moveDelay = 150, canMove = true;
+    let enemyInterval;
+
+    function getMazeSize() { return 13; }
+
+    function initGame() {
+      size = getMazeSize();
+      maze = Array.from({ length: size }, () => Array(size).fill(1));
+      player = {x:1, y:1};
+      goal = {x:size-2, y:size-2};
+      traps = [];
+      powerups = [];
+      enemies = [];
+      lives = 3;
+      updateHearts();
+      statusEl.textContent = "Escape the maze!";
+      gameOver = false;
+      generateMaze();
+      placeTraps();
+      placePowerUps();
+      placeEnemies();
+      drawMaze();
+      startTimer();
+      startEnemies();
+    }
+
+    function generateMaze() {
+      function carve(x,y) {
+        const dirs = [[0,-2],[0,2],[-2,0],[2,0]].sort(()=>Math.random()-0.5);
+        for (let [dx,dy] of dirs) {
+          let nx = x+dx, ny = y+dy;
+          if (nx>0 && ny>0 && nx<size-1 && ny<size-1 && maze[ny][nx]===1) {
+            maze[ny][nx]=0;
+            maze[y+dy/2][x+dx/2]=0;
+            carve(nx,ny);
+          }
+        }
+      }
+      maze[1][1]=0;
+      carve(1,1);
+    }
+
+    function placeTraps() {
+      let count = Math.floor(size/2);
+      while(traps.length<count) {
+        let x=Math.floor(Math.random()*size), y=Math.floor(Math.random()*size);
+        if(maze[y][x]===0 && !(x===1&&y===1) && !(x===goal.x&&y===goal.y))
+          traps.push({x,y});
+      }
+    }
+
+    function placePowerUps() {
+      let count = Math.floor(size/3);
+      const types = ["apple","speed"];
+      while(powerups.length<count) {
+        let x=Math.floor(Math.random()*size), y=Math.floor(Math.random()*size);
+        if(maze[y][x]===0 && !(x===1&&y===1) && !(x===goal.x&&y===goal.y) &&
+          !traps.some(t=>t.x===x&&t.y===y)) {
+          let type = types[Math.floor(Math.random()*types.length)];
+          powerups.push({x,y,type});
+        }
+      }
+    }
+
+    function placeEnemies() {
+      let count = 2; // two ghosts
+      while(enemies.length<count) {
+        let x=Math.floor(Math.random()*size), y=Math.floor(Math.random()*size);
+        if(maze[y][x]===0 && !(x===1&&y===1) && !(x===goal.x&&y===goal.y)) {
+          enemies.push({x,y});
+        }
+      }
+    }
+
+    function drawMaze() {
+      game.innerHTML="";
+      game.style.gridTemplateColumns=`repeat(${size},24px)`;
+      game.style.gridTemplateRows=`repeat(${size},24px)`;
+      for(let y=0;y<size;y++){
+        for(let x=0;x<size;x++){
+          const cell=document.createElement("div");
+          cell.classList.add("cell");
+          if(maze[y][x]===1) cell.classList.add("wall");
+          if(player.x===x && player.y===y) cell.textContent="🐭";
+          else if(goal.x===x && goal.y===y) cell.textContent="🧀";
+          else if(traps.some(t=>t.x===x&&t.y===y)) cell.textContent="⚠️";
+          else {
+            let pu = powerups.find(p=>p.x===x&&p.y===y);
+            if(pu) cell.textContent= pu.type==="apple"?"🍎":"⚡";
+            let en = enemies.find(e=>e.x===x&&e.y===y);
+            if(en) cell.textContent="👻";
+          }
+          game.appendChild(cell);
+        }
+      }
+    }
+
+    function move(dx,dy){
+      if(gameOver||!canMove) return;
+      canMove=false;
+      setTimeout(()=>canMove=true, moveDelay);
+      const newX=player.x+dx, newY=player.y+dy;
+      if(newX>=0&&newX<size&&newY>=0&&newY<size&&maze[newY][newX]===0){
+        player.x=newX; player.y=newY;
+        checkTrap();
+        checkPowerUp();
+        checkEnemy();
+        drawMaze();
+        checkWin();
+      }
+    }
+
+    function checkTrap(){
+      if(traps.some(t=>t.x===player.x&&t.y===player.y)){
+        loseLife("⚠️ You hit a trap!");
+        traps=traps.filter(t=>!(t.x===player.x&&t.y===player.y));
+      }
+    }
+
+    function checkPowerUp(){
+      let pu = powerups.find(p=>p.x===player.x&&p.y===player.y);
+      if(pu){
+        if(pu.type==="apple" && lives<3){
+          lives++; updateHearts();
+          statusEl.textContent="🍎 Restored 1 ❤️!";
+        }
+        if(pu.type==="speed"){
+          moveDelay=70;
+          statusEl.textContent="⚡ Speed Boost!";
+          setTimeout(()=>{moveDelay=150;},4000);
+        }
+        powerups=powerups.filter(p=>!(p.x===pu.x&&p.y===pu.y));
+      }
+    }
+
+    function checkEnemy(){
+      if(enemies.some(e=>e.x===player.x&&e.y===player.y)){
+        loseLife("👻 A ghost got you!");
+      }
+    }
+
+    function loseLife(msg){
+      lives--; updateHearts();
+      statusEl.textContent=msg;
+      if(lives<=0){
+        gameOver=true; stopTimer(); stopEnemies();
+        statusEl.textContent="💀 Game Over!";
+      }
+    }
+
+    function checkWin(){
+      if(player.x===goal.x&&player.y===goal.y){
+        gameOver=true; stopTimer(); stopEnemies();
+        statusEl.textContent="🎉 You Escaped!";
+      }
+    }
+
+    function updateHearts(){
+      heartsEl.textContent="❤️".repeat(lives)+"🤍".repeat(3-lives);
+    }
+
+    function startTimer(){
+      clearInterval(timerInterval);
+      startTime=Date.now();
+      timerEl.textContent="⏱️ Time: 0s";
+      timerInterval=setInterval(()=>{
+        if(!gameOver){
+          const elapsed=Math.floor((Date.now()-startTime)/1000);
+          timerEl.textContent=`⏱️ Time: ${elapsed}s`;
+        }
+      },1000);
+    }
+
+    function stopTimer(){ clearInterval(timerInterval); }
+
+    function startEnemies(){
+      clearInterval(enemyInterval);
+      enemyInterval=setInterval(()=>{
+        if(!gameOver){
+          moveEnemies();
+          drawMaze();
+          checkEnemy();
+        }
+      },1000);
+    }
+
+    function stopEnemies(){ clearInterval(enemyInterval); }
+
+    function moveEnemies(){
+      enemies.forEach(e=>{
+        let dx = player.x - e.x;
+        let dy = player.y - e.y;
+        let stepX = dx===0?0:(dx>0?1:-1);
+        let stepY = dy===0?0:(dy>0?1:-1);
+        // try horizontal or vertical move first
+        if(Math.abs(dx)>Math.abs(dy) && maze[e.y][e.x+stepX]===0) e.x+=stepX;
+        else if(Math.abs(dy)>=Math.abs(dx) && maze[e.y+stepY] && maze[e.y+stepY][e.x]===0) e.y+=stepY;
+      });
+    }
+
+    document.addEventListener("keydown", e=>{
+      if(e.key==="ArrowUp"||e.key==="w") move(0,-1);
+      if(e.key==="ArrowDown"||e.key==="s") move(0,1);
+      if(e.key==="ArrowLeft"||e.key==="a") move(-1,0);
+      if(e.key==="ArrowRight"||e.key==="d") move(1,0);
+      if(e.key==="Enter") initGame();
+    });
+
+    initGame();
+  </script>
+</body>
+</html>
