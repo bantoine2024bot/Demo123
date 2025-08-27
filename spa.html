@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>💆 Face Spa Game</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #ffe6f9, #e6f7ff);
+      color: #cc0099;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    #faceArea {
+      font-size: 80px;
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 20px auto;
+    }
+
+    .problem {
+      position: absolute;
+      font-size: 32px;
+      cursor: pointer;
+    }
+
+    #controls {
+      margin-top: 20px;
+    }
+
+    button {
+      background: #ff99cc;
+      border: none;
+      padding: 10px 16px;
+      margin: 6px;
+      border-radius: 12px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 3px #cc6699;
+    }
+
+    button:hover {
+      background: #ff66b2;
+    }
+
+    #message {
+      margin-top: 15px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>💆 Face Spa</h1>
+  <p>Fix all the facial problems to complete the spa treatment!</p>
+
+  <div id="faceArea">
+    <div id="face">🙂</div>
+    <!-- problems will be placed here -->
+  </div>
+
+  <div id="controls">
+    <button onclick="useTool('pimple')">✨ Pop Pimples</button>
+    <button onclick="useTool('blackhead')">🎭 Remove Blackheads</button>
+  </div>
+
+  <div id="message"></div>
+
+  <script>
+    const faceArea = document.getElementById("faceArea");
+    const message = document.getElementById("message");
+    let problems = [];
+
+    // Spawn random pimples and blackheads
+    function initProblems() {
+      problems = [];
+      faceArea.querySelectorAll(".problem").forEach(el => el.remove());
+
+      for (let i = 0; i < 4; i++) {
+        spawnProblem("🔴", "pimple");
+      }
+      for (let i = 0; i < 3; i++) {
+        spawnProblem("⚫", "blackhead");
+      }
+    }
+
+    function spawnProblem(symbol, type) {
+      const div = document.createElement("div");
+      div.innerText = symbol;
+      div.classList.add("problem", type);
+      div.style.left = Math.random() * 120 + 40 + "px";
+      div.style.top = Math.random() * 120 + 40 + "px";
+      faceArea.appendChild(div);
+      problems.push(div);
+    }
+
+    // Use tool to remove specific problems
+    function useTool(type) {
+      let found = false;
+      problems = problems.filter(p => {
+        if (p.classList.contains(type) && !found) {
+          p.remove();
+          found = true;
+          return false;
+        }
+        return true;
+      });
+      checkWin();
+    }
+
+    function checkWin() {
+      if (problems.length === 0) {
+        document.getElementById("face").innerText = "😎";
+        message.innerText = "✨ Spa Complete! You look amazing! 💖";
+      }
+    }
+
+    // Start game
+    initProblems();
+  </script>
+</body>
+</html>
