@@ -32,6 +32,37 @@
       cursor: pointer;
       opacity: 0.8;
     }
+    #leaderboard {
+      margin-top: 20px;
+      max-width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+      background: #222;
+      padding: 10px;
+      border-radius: 8px;
+    }
+    #leaderboard h2 {
+      margin: 0 0 10px;
+    }
+    #leaderboard ol {
+      padding-left: 20px;
+      text-align: left;
+    }
+    .mobile-buttons {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+    .mobile-buttons button {
+      width: 60px;
+      height: 60px;
+      font-size: 24px;
+      margin: 5px;
+      border-radius: 50%;
+      background: #333;
+      color: #eee;
+    }
   </style>
 </head>
 <body>
@@ -46,12 +77,30 @@
     <button id="startTimer">Start Timer</button>
     <span id="timer">00:00</span>
   </div>
+
+  <div id="leaderboard">
+    <h2>🏆 Leaderboard</h2>
+    <ol id="scores"></ol>
+  </div>
+
+  <div class="mobile-buttons">
+    <div style="width:100%"></div>
+    <button id="upBtn">⬆️</button>
+    <div style="width:100%"></div>
+    <button id="leftBtn">⬅️</button>
+    <button id="downBtn">⬇️</button>
+    <button id="rightBtn">➡️</button>
+  </div>
+
   <script>
     const canvas = document.getElementById('mazeCanvas');
     const ctx = canvas.getContext('2d');
     let cols, rows, cellSize;
     let grid = [], stack = [], player, exit, solution = [];
     let timerInterval, startTime;
+    let leaderboard = [];
+
+    let touchStartX, touchStartY;
 
     class Cell {
       constructor(x, y) {
@@ -171,22 +220,57 @@
       }
     }
 
-    document.addEventListener('keydown', e=>{
+    function movePlayer(dx,dy){
       let moved=false;
       const c = grid[index(player.x, player.y)];
-      if (e.key==='ArrowUp' || e.key==='w') { if (!c.walls[0]) {player.y--; moved=true;} }
-      if (e.key==='ArrowRight' || e.key==='d') { if (!c.walls[1]) {player.x++; moved=true;} }
-      if (e.key==='ArrowDown' || e.key==='s') { if (!c.walls[2]) {player.y++; moved=true;} }
-      if (e.key==='ArrowLeft' || e.key==='a') { if (!c.walls[3]) {player.x--; moved=true;} }
+      if (dx===0 && dy===-1 && !c.walls[0]) {player.y--; moved=true;}
+      if (dx===1 && dy===0 && !c.walls[1]) {player.x++; moved=true;}
+      if (dx===0 && dy===1 && !c.walls[2]) {player.y++; moved=true;}
+      if (dx===-1 && dy===0 && !c.walls[3]) {player.x--; moved=true;}
       if (moved) {
         drawMaze();
         if (player.x===exit.x && player.y===exit.y) {
           clearInterval(timerInterval);
-          alert("🎉 You solved the maze in "+document.getElementById('timer').innerText);
+          const time = document.getElementById('timer').innerText;
+          alert("🎉 You solved the maze in "+time);
+          updateLeaderboard(time);
         }
       }
+    }
+
+    document.addEventListener('keydown', e=>{
+      if (e.key==='ArrowUp' || e.key==='w') movePlayer(0,-1);
+      if (e.key==='ArrowRight' || e.key==='d') movePlayer(1,0);
+      if (e.key==='ArrowDown' || e.key==='s') movePlayer(0,1);
+      if (e.key==='ArrowLeft' || e.key==='a') movePlayer(-1,0);
       if (e.key==='r') generateMaze();
     });
+
+    // Swipe controls
+    canvas.addEventListener('touchstart', e=>{
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    });
+
+    canvas.addEventListener('touchend', e=>{
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - touchStartX;
+      const dy = touch.clientY - touchStartY;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 30) movePlayer(1,0);
+        else if (dx < -30) movePlayer(-1,0);
+      } else {
+        if (dy > 30) movePlayer(0,1);
+        else if (dy < -30) movePlayer(0,-1);
+      }
+    });
+
+    // Mobile button controls
+    document.getElementById('upBtn').onclick = ()=>movePlayer(0,-1);
+    document.getElementById('downBtn').onclick = ()=>movePlayer(0,1);
+    document.getElementById('leftBtn').onclick = ()=>movePlayer(-1,0);
+    document.getElementById('rightBtn').onclick = ()=>movePlayer(1,0);
 
     document.getElementById('newMaze').onclick = generateMaze;
     document.getElementById('showSolution').onclick = ()=>{findSolution(); drawMaze(true);} ;
@@ -200,6 +284,23 @@
         document.getElementById('timer').innerText = `${mins}:${secs}`;
       },1000);
     };
+
+    function updateLeaderboard(time) {
+      leaderboard.push(time);
+      leaderboard.sort();
+      leaderboard = leaderboard.slice(0,5);
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      const list = document.getElementById('scores');
+      list.innerHTML = '';
+      leaderboard.forEach((t,i)=>{
+        const li = document.createElement('li');
+        li.innerText = t;
+        list.appendChild(li);
+      });
+    }
 
     generateMaze();
   </script>
