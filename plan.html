@@ -1,0 +1,110 @@
+import React, { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+
+export default function WorkoutPlanner() {
+  const [goal, setGoal] = useState("");
+  const [level, setLevel] = useState("");
+  const [equipment, setEquipment] = useState("");
+  const [time, setTime] = useState("");
+  const [days, setDays] = useState("");
+  const [plan, setPlan] = useState(null);
+
+  const generatePlan = () => {
+    let workout = [];
+
+    if (level === "Beginner" && equipment === "None") {
+      workout = [
+        "Day 1: Bodyweight Squats, Push-ups, Glute Bridges, Plank",
+        "Day 2: 20 min brisk walk + 10 min stretching",
+        "Day 3: Lunges, Chair Dips, Superman Hold, Side Plank"
+      ];
+    } else if (level === "Intermediate" && equipment === "Dumbbells") {
+      workout = [
+        "Day 1: Dumbbell Bench Press, Overhead Press, Lateral Raises, Triceps Extensions",
+        "Day 2: Dumbbell Squats, Romanian Deadlifts, Calf Raises, Core Circuit",
+        "Day 3: Dumbbell Rows, Bicep Curls, Rear Delt Raises, Pull-ups",
+        "Day 4: HIIT Circuit (Burpees, Jump Rope, Kettlebell Swings)"
+      ];
+    } else {
+      workout = ["Custom workout coming soon based on your inputs!"];
+    }
+
+    setPlan(workout);
+  };
+
+  return (
+    <div className="p-6 grid gap-6 max-w-xl mx-auto">
+      <h1 className="text-2xl font-bold text-center">🏋️ Workout Plan Generator</h1>
+
+      <Card>
+        <CardContent className="grid gap-4 p-4">
+          <div>
+            <label className="text-sm font-medium">Goal</label>
+            <Select onValueChange={setGoal}>
+              <SelectTrigger><SelectValue placeholder="Select goal" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Muscle">Build Muscle</SelectItem>
+                <SelectItem value="FatLoss">Lose Fat</SelectItem>
+                <SelectItem value="Fitness">General Fitness</SelectItem>
+                <SelectItem value="Flexibility">Flexibility</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Fitness Level</label>
+            <Select onValueChange={setLevel}>
+              <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Beginner">Beginner</SelectItem>
+                <SelectItem value="Intermediate">Intermediate</SelectItem>
+                <SelectItem value="Advanced">Advanced</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Equipment</label>
+            <Select onValueChange={setEquipment}>
+              <SelectTrigger><SelectValue placeholder="Select equipment" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="None">None</SelectItem>
+                <SelectItem value="Dumbbells">Dumbbells</SelectItem>
+                <SelectItem value="Gym">Gym Access</SelectItem>
+                <SelectItem value="Bands">Resistance Bands</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Time per Workout (minutes)</label>
+            <Input type="number" value={time} onChange={(e) => setTime(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">Days per Week</label>
+            <Input type="number" value={days} onChange={(e) => setDays(e.target.value)} />
+          </div>
+
+          <Button onClick={generatePlan}>Generate Plan</Button>
+        </CardContent>
+      </Card>
+
+      {plan && (
+        <Card>
+          <CardContent className="p-4">
+            <h2 className="text-lg font-semibold mb-2">Your Workout Plan</h2>
+            <ul className="list-disc pl-6">
+              {plan.map((day, i) => (
+                <li key={i}>{day}</li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
