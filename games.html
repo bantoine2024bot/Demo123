@@ -1,0 +1,447 @@
+import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+
+const games = ["Sudoku", "Tic Tac Toe", "Connect Four", "2048"];
+
+export default function App() {
+  const [selectedGame, setSelectedGame] = useState(null);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-purple-200 to-pink-200 flex flex-col items-center justify-center p-6">
+      {!selectedGame ? (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="grid gap-4"
+        >
+          <h1 className="text-3xl font-bold text-center mb-6">Mini Games</h1>
+          {games.map((game) => (
+            <Button
+              key={game}
+              className="rounded-2xl shadow-lg p-6 text-xl"
+              onClick={() => setSelectedGame(game)}
+            >
+              {game}
+            </Button>
+          ))}
+        </motion.div>
+      ) : (
+        <div className="w-full max-w-md">
+          <Button className="mb-4" onClick={() => setSelectedGame(null)}>
+            ⬅ Back
+          </Button>
+          {selectedGame === "Sudoku" && <Sudoku />}
+          {selectedGame === "Tic Tac Toe" && <TicTacToe />}
+          {selectedGame === "Connect Four" && <ConnectFour />}
+          {selectedGame === "2048" && <Game2048 />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Sudoku() {
+  const initial = [
+    [5, 3, 0, 0, 7, 0, 0, 0, 0],
+    [6, 0, 0, 1, 9, 5, 0, 0, 0],
+    [0, 9, 8, 0, 0, 0, 0, 6, 0],
+    [8, 0, 0, 0, 6, 0, 0, 0, 3],
+    [4, 0, 0, 8, 0, 3, 0, 0, 1],
+    [7, 0, 0, 0, 2, 0, 0, 0, 6],
+    [0, 6, 0, 0, 0, 0, 2, 8, 0],
+    [0, 0, 0, 4, 1, 9, 0, 0, 5],
+    [0, 0, 0, 0, 8, 0, 0, 7, 9],
+  ];
+
+  const [grid, setGrid] = useState(initial);
+  const fixed = initial.map((row) => row.map((v) => v !== 0));
+  const [selected, setSelected] = useState({ r: null, c: null });
+  const [errorCell, setErrorCell] = useState(null);
+  const [solved, setSolved] = useState(false);
+
+  const inBounds = (r, c) => r >= 0 && r < 9 && c >= 0 && c < 9;
+
+  const isValidPlacement = (g, r, c, val) => {
+    if (!val) return true;
+    // row
+    for (let i = 0; i < 9; i++) if (i !== c && g[r][i] === val) return false;
+    // col
+    for (let i = 0; i < 9; i++) if (i !== r && g[i][c] === val) return false;
+    // box
+    const br = Math.floor(r / 3) * 3;
+    const bc = Math.floor(c / 3) * 3;
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        const rr = br + i,
+          cc = bc + j;
+        if (!(rr === r && cc === c) && g[rr][cc] === val) return false;
+      }
+    }
+    return true;
+  };
+
+  const isCompleteAndValid = (g) => {
+    // all filled and every row/col/box valid
+    // rows
+    for (let r = 0; r < 9; r++) {
+      const seen = new Set();
+      for (let c = 0; c < 9; c++) {
+        const v = g[r][c];
+        if (v === 0 || seen.has(v)) return false;
+        seen.add(v);
+      }
+    }
+    // cols
+    for (let c = 0; c < 9; c++) {
+      const seen = new Set();
+      for (let r = 0; r < 9; r++) {
+        const v = g[r][c];
+        if (v === 0 || seen.has(v)) return false;
+        seen.add(v);
+      }
+    }
+    // boxes
+    for (let br = 0; br < 9; br += 3) {
+      for (let bc = 0; bc < 9; bc += 3) {
+        const seen = new Set();
+        for (let i = 0; i < 3; i++) {
+          for (let j = 0; j < 3; j++) {
+            const v = g[br + i][bc + j];
+            if (v === 0 || seen.has(v)) return false;
+            seen.add(v);
+          }
+        }
+      }
+    }
+    return true;
+  };
+
+  const placeNumber = (num) => {
+    const { r, c } = selected;
+    if (!inBounds(r, c) || fixed[r][c] || solved) return;
+
+    const next = grid.map((row) => [...row]);
+    next[r][c] = num;
+    if (!isValidPlacement(next, r, c, num)) {
+      setErrorCell({ r, c });
+      setTimeout(() => setErrorCell(null), 450);
+      return;
+    }
+    setGrid(next);
+    if (isCompleteAndValid(next)) setSolved(true);
+  };
+
+  const clearCell = () => {
+    const { r, c } = selected;
+    if (!inBounds(r, c) || fixed[r][c] || solved) return;
+    const next = grid.map((row) => [...row]);
+    next[r][c] = 0;
+    setGrid(next);
+  };
+
+  const reset = () => {
+    setGrid(initial);
+    setSolved(false);
+    setSelected({ r: null, c: null });
+    setErrorCell(null);
+  };
+
+  // Keyboard support 1-9 / Backspace
+  useEffect(() => {
+    const onKey = (e) => {
+      if (solved) return;
+      if (e.key >= "1" && e.key <= "9") placeNumber(parseInt(e.key, 10));
+      if (e.key === "Backspace" || e.key === "Delete") clearCell();
+      if (e.key === "Escape") setSelected({ r: null, c: null });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <h2 className="text-2xl font-bold text-purple-700">🧩 Sudoku</h2>
+      <div className="bg-white p-3 rounded-2xl shadow">
+        <div className="grid grid-cols-9">
+          {grid.map((row, r) =>
+            row.map((val, c) => {
+              const thickRight = (c + 1) % 3 === 0 && c !== 8;
+              const thickBottom = (r + 1) % 3 === 0 && r !== 8;
+              const isFixed = fixed[r][c];
+              const isSelected = selected.r === r && selected.c === c;
+              const isError = errorCell && errorCell.r === r && errorCell.c === c;
+              return (
+                <button
+                  key={`${r}-${c}`}
+                  onClick={() => !solved && !isFixed && setSelected({ r, c })}
+                  className={[
+                    "w-10 h-10 flex items-center justify-center border text-lg font-semibold",
+                    isFixed ? "bg-gray-100 text-gray-700" : "bg-white",
+                    isSelected ? "ring-2 ring-purple-400" : "",
+                    thickRight ? "border-r-4 border-r-gray-700" : "",
+                    thickBottom ? "border-b-4 border-b-gray-700" : "",
+                    isError ? "animate-shake border-red-500" : "",
+                  ].join(" ")}
+                >
+                  {val !== 0 ? val : ""}
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Keypad */}
+      <div className="grid grid-cols-5 gap-2">
+        {[1,2,3,4,5,6,7,8,9].map(n => (
+          <button
+            key={n}
+            onClick={() => placeNumber(n)}
+            className="px-4 py-2 rounded-xl bg-purple-500 text-white font-semibold shadow hover:brightness-110 disabled:opacity-50"
+            disabled={selected.r === null || solved}
+          >
+            {n}
+          </button>
+        ))}
+        <button
+          onClick={clearCell}
+          className="px-4 py-2 rounded-xl bg-gray-500 text-white font-semibold shadow hover:brightness-110 disabled:opacity-50"
+          disabled={selected.r === null || solved}
+        >
+          Erase
+        </button>
+        <button
+          onClick={reset}
+          className="px-4 py-2 rounded-xl bg-gray-200 text-gray-800 font-semibold shadow"
+        >
+          Reset
+        </button>
+      </div>
+
+      {solved && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="mt-2 px-4 py-2 rounded-full bg-green-500 text-white font-bold"
+        >
+          You solved it! 🎉
+        </motion.div>
+      )}
+
+      {/* tiny utility animation */}
+      <style>{`
+        .animate-shake { animation: shake .3s; }
+        @keyframes shake { 10%, 90% { transform: translateX(-1px);} 20%, 80% { transform: translateX(2px);} 30%, 50%, 70% { transform: translateX(-4px);} 40%, 60% { transform: translateX(4px);} }
+      `}</style>
+    </div>
+  );
+}
+
+// ----- Fixed TicTacToe: single-player (you vs simple AI) -----
+function TicTacToe() {
+  const [board, setBoard] = useState(Array(9).fill(null));
+  const [isPlayerTurn, setIsPlayerTurn] = useState(true); // player = X
+  const [winner, setWinner] = useState(null); // 'X', 'O', 'T' (tie), or null
+
+  const lines = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  const computeWinner = (b) => {
+    for (let [a,bIdx,c] of lines) {
+      if (b[a] && b[a] === b[bIdx] && b[a] === b[c]) return b[a];
+    }
+    return null;
+  };
+
+  // Check for winner or tie whenever board changes
+  useEffect(() => {
+    const w = computeWinner(board);
+    if (w) {
+      setWinner(w);
+      return;
+    }
+    if (board.every(Boolean)) {
+      setWinner('T');
+    }
+  }, [board]);
+
+  // Simple AI: pick random empty cell when it's AI turn
+  useEffect(() => {
+    if (isPlayerTurn || winner) return;
+    const empty = board.map((v,i) => (v ? null : i)).filter((v) => v !== null);
+    if (empty.length === 0) return;
+    const choice = empty[Math.floor(Math.random()*empty.length)];
+    const t = setTimeout(() => {
+      setBoard((prev) => prev.map((v,i) => (i===choice ? 'O' : v)));
+      setIsPlayerTurn(true);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [isPlayerTurn, board, winner]);
+
+  const handleClick = (i) => {
+    if (board[i] || !isPlayerTurn || winner) return;
+    setBoard((prev) => prev.map((v, idx) => (idx === i ? 'X' : v)));
+    setIsPlayerTurn(false);
+  };
+
+  const reset = () => {
+    setBoard(Array(9).fill(null));
+    setWinner(null);
+    setIsPlayerTurn(true);
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-4">
+      <h2 className="text-2xl font-bold">❌ Tic Tac Toe ⭘</h2>
+      <div className="grid grid-cols-3 gap-2">
+        {board.map((cell, i) => (
+          <div
+            key={i}
+            onClick={() => handleClick(i)}
+            className="w-20 h-20 bg-white rounded-xl shadow flex items-center justify-center text-2xl cursor-pointer"
+          >
+            {cell}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-2">
+        <Button onClick={reset}>Reset</Button>
+        <div className="flex items-center px-3">{winner ? (winner === 'T' ? 'Tie' : `${winner} wins`) : (isPlayerTurn ? 'Your turn' : "Computer's turn")}</div>
+      </div>
+    </div>
+  );
+}
+
+function ConnectFour() {
+  const rows = 6, cols = 7;
+  const [board, setBoard] = useState(Array.from({ length: rows }, () => Array(cols).fill(null)));
+  const [playerTurn, setPlayerTurn] = useState(true);
+
+  const dropDisc = (col) => {
+    for (let row = rows - 1; row >= 0; row--) {
+      if (!board[row][col]) {
+        const newBoard = board.map((r) => [...r]);
+        newBoard[row][col] = playerTurn ? "🔴" : "🟡";
+        setBoard(newBoard);
+        setPlayerTurn(!playerTurn);
+        return;
+      }
+    }
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-2">🔴 Connect Four 🟡</h2>
+      <div className="grid grid-cols-7 gap-1">
+        {board.map((row, rIdx) =>
+          row.map((cell, cIdx) => (
+            <div
+              key={`${rIdx}-${cIdx}`}
+              onClick={() => dropDisc(cIdx)}
+              className="w-12 h-12 bg-green-200 rounded flex items-center justify-center text-xl cursor-pointer"
+            >
+              {cell}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Game2048() {
+  const [grid, setGrid] = useState(() => generateGrid());
+
+  function generateGrid() {
+    let newGrid = Array.from({ length: 4 }, () => Array(4).fill(0));
+    addRandomTile(newGrid);
+    addRandomTile(newGrid);
+    return newGrid;
+  }
+
+  function addRandomTile(g) {
+    let empty = [];
+    g.forEach((row, r) => row.forEach((val, c) => { if (val === 0) empty.push([r,c]); }));
+    if (empty.length === 0) return;
+    const [r,c] = empty[Math.floor(Math.random()*empty.length)];
+    g[r][c] = Math.random() < 0.9 ? 2 : 4;
+  }
+
+  function handleKey(e) {
+    if (!["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.key)) return;
+    e.preventDefault();
+    setGrid((prev) => {
+      const moved = moveGrid(prev, e.key);
+      // Only add random tile if grid changed
+      if (!gridsEqual(prev, moved)) {
+        addRandomTile(moved);
+        return moved;
+      }
+      return prev;
+    });
+  }
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+
+  function gridsEqual(a,b) {
+    for (let r=0;r<4;r++) for (let c=0;c<4;c++) if (a[r][c] !== b[r][c]) return false;
+    return true;
+  }
+
+  function moveGrid(grid, direction) {
+    // convert grid to rows-to-left depending on direction, then slide/combine then rotate back
+    let working = grid.map((row) => [...row]);
+    if (direction === 'ArrowUp') working = transpose(working);
+    if (direction === 'ArrowDown') working = transpose(working).map((row) => row.reverse());
+    if (direction === 'ArrowRight') working = working.map((row) => row.reverse());
+
+    working = working.map((row) => slideAndCombine(row));
+
+    if (direction === 'ArrowUp') working = transpose(working);
+    if (direction === 'ArrowDown') working = transpose(working.map((row) => row.reverse()));
+    if (direction === 'ArrowRight') working = working.map((row) => row.reverse());
+
+    return working;
+  }
+
+  function transpose(g) {
+    return g[0].map((_, c) => g.map((row) => row[c]));
+  }
+
+  function slideAndCombine(row) {
+    let newRow = row.filter((v) => v !== 0);
+    for (let i=0;i<newRow.length-1;i++) {
+      if (newRow[i] === newRow[i+1]) {
+        newRow[i] *= 2;
+        newRow[i+1] = 0;
+      }
+    }
+    newRow = newRow.filter((v) => v !== 0);
+    while (newRow.length < 4) newRow.push(0);
+    return newRow;
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold mb-2">🎲 2048 🎲</h2>
+      <div className="grid grid-cols-4 gap-2 bg-gray-300 p-4 rounded-xl">
+        {grid.map((row, rIdx) => row.map((val, cIdx) => (
+          <div key={`${rIdx}-${cIdx}`} className="w-16 h-16 bg-white rounded flex items-center justify-center font-bold text-xl">
+            {val !== 0 ? val : ''}
+          </div>
+        )))}
+      </div>
+      <div className="mt-2">
+        <div className="text-sm text-gray-700">Use arrow keys to play.</div>
+      </div>
+    </div>
+  );
+}
